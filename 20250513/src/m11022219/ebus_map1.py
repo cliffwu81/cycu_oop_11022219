@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
-This module retrieves bus stop data for a specific route and direction from the Taipei eBus website,
-saves the rendered HTML and CSV file, and stores the parsed data in a SQLite database.
-"""
-
+# homework 1 
+def get_bus_info_go(bus_id):
+    """
+    Returns the stop list of the given bus_id.
+    Replace the logic below with actual data retrieval.
+    """
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 import re
 import pandas as pd
 from playwright.sync_api import sync_playwright
@@ -288,3 +290,15 @@ if __name__ == "__main__":
             print(f"Error processing route {route_id}: {e}")
             route_list.set_route_data_unexcepted(route_id)
             continue
+
+
+    return 
+
+
+
+
+if __name__ == "__main__":
+
+    stop = get_bus_info_go("M11022219")
+
+
