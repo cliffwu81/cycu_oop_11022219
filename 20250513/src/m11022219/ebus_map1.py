@@ -289,17 +289,25 @@ if __name__ == "__main__":
 
 # homework 1 
 def get_bus_info_go(bus_id):
+    
+
     route_info = taipei_route_info(bus_id, direction="go")
     route_info.parse_route_info()
     route_info.save_to_database()
-    
+
     stop_list = []
     for index, row in route_info.dataframe.iterrows():
-        stop_list.append({'stop_id'})
-    
+        stop_list.append(row['stop_id'])
+
     return stop_list
 
 
+
+
+if __name__ == "__main__":
+
+    stop = get_bus_info_go('0161000900')
+    print(f"Route Info Go: {stop}")
 
 
 
