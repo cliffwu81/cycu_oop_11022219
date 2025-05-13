@@ -1,9 +1,4 @@
-# homework 1 
-def get_bus_info_go(bus_id):
-    """
-    Returns the stop list of the given bus_id.
-    Replace the logic below with actual data retrieval.
-    """
+
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 import re
@@ -292,13 +287,21 @@ if __name__ == "__main__":
             continue
 
 
-    return 
+# homework 1 
+def get_bus_info_go(bus_id):
+    route_info = taipei_route_info(bus_id, direction="go")
+    route_info.parse_route_info()
+    route_info.save_to_database()
+    
+    stop_list = []
+    for index, row in route_info.dataframe.iterrows():
+        stop_list.append({'stop_id'})
+    
+    return stop_list
 
 
 
 
-if __name__ == "__main__":
 
-    stop = get_bus_info_go("M11022219")
 
 
