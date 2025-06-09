@@ -2,6 +2,9 @@ import sys
 import requests
 sys.stdout.reconfigure(encoding='utf-8')
 from pathlib import Path
+import pandas as pd
+from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
 
 # 匯入 taipei_route_info, taipei_route_list
 sys.path.append(str(Path(__file__).resolve().parent.parent / "20250513" / "src" / "m11022219"))
@@ -26,46 +29,53 @@ def get_eta(route_name, stop_name):
     except Exception:
         return "查詢失敗"
 
+def get_eta_by_web(route_name, stop_name):
+    df = pd.read_csv("HW2.csv", dtype=str)
+    print("CSV 欄位名稱：", df.columns.tolist())  # 新增這行
+    # 這裡 route_id 改為 route_name
+    # 你需要先查 route_name 對應的 route_id，這裡假設 HW2.csv 有這個對照
+    # 先查 route_id
+    row = df[df['route_name'] == route_name].iloc[0]
+    route_id = row['route_name']
+    url = f"https://ebus.gov.taipei/EBus/VsSimpleMap?routeid={route_name}&gb=0"
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url)
+        page.wait_for_timeout(3000)
+        html = page.content()
+        browser.close()
+    soup = BeautifulSoup(html, "html.parser")
+    for stop_div in soup.select("div.stop-info"):
+        name_tag = stop_div.select_one(".stop-name")
+        eta_tag = stop_div.select_one(".eta")
+        if name_tag and name_tag.text.strip() == stop_name:
+            return eta_tag.text.strip() if eta_tag else "查無即時資料"
+    return "查無即時資料"
+
 def main():
-    print("🚌 歡迎使用台北市公車即時站牌查詢")
-    # 取得 route_id 與 route_name 對照表
-    route_list = taipei_route_list()
-    df_route = route_list.parse_route_list()
-    route_id = input("請輸入路線ID（如 0161000900）：").strip()
-    direction = input("請輸入方向（go 或 come）：").strip()
-    if direction not in ["go", "come"]:
-        print("❌ 方向只能是 go 或 come")
+    df = pd.read_csv("HW2.csv", dtype=str)
+    start = input("請輸入出發站名：").strip()
+    end = input("請輸入到達站名：").strip()
+
+    matched = []
+    for (route_name, direction_text), group in df.groupby(['route_name', 'direction_text']):
+        stops = group.sort_values('stop_number')['stop_name'].tolist()
+        if start in stops and end in stops:
+            if stops.index(start) < stops.index(end):
+                matched.append((route_name, direction_text, stops))
+
+    if not matched:
+        print("❌ 查無同時經過這兩站的公車路線")
         return
 
-    # 自動查 route_name
-    row = df_route[df_route["route_id"] == route_id]
-    if row.empty:
-        print("❌ 查無此路線ID")
-        return
-    route_name = row.iloc[0]["route_name"]
-
-    try:
-        route_info = taipei_route_info(route_id, direction=direction)
-        df = route_info.parse_route_info()
-        stops = df["stop_name"].tolist()
-        print("所有站名：")
-        print("、".join(stops))
-        start = input("請輸入出發站名：").strip()
-        end = input("請輸入到達站名：").strip()
-        if start not in stops or end not in stops:
-            print("❌ 站名輸入錯誤")
-            return
+    for route_name, direction_text, stops in matched:
         start_idx = stops.index(start)
         end_idx = stops.index(end)
-        if start_idx > end_idx:
-            print("❌ 出發站應在到達站之前")
-            return
-        print(f"\n經過站名與預估到站時間（路線：{route_name}）：")
+        print(f"\n路線：{route_name}（{direction_text}）")
         for stop in stops[start_idx:end_idx+1]:
-            eta = get_eta(route_name, stop)
+            eta = get_eta_by_web(route_name, stop)
             print(f"{stop}：{eta}")
-    except Exception as e:
-        print(f"❌ 查詢失敗：{e}")
 
 if __name__ == "__main__":
     main()
